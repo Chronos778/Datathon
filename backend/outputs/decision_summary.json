@@ -1,0 +1,41 @@
+{
+  "input_file": "C:\\Arya my goat\\Datathon\\analyzed_dataset_transformer.csv",
+  "rows_processed": 1200,
+  "valid_rows": 1200,
+  "severity_counts": {
+    "MEDIUM": 843,
+    "LOW": 336,
+    "HIGH": 19,
+    "CRITICAL": 2
+  },
+  "priority_counts": {
+    "P3": 843,
+    "P4": 336,
+    "P2": 19,
+    "P1": 2
+  },
+  "department_counts": {
+    "General Services": 408,
+    "Facilities": 302,
+    "IT": 276,
+    "Cafeteria": 77,
+    "Academic Affairs": 62,
+    "Library": 35,
+    "Placement Cell": 28,
+    "Administration": 12
+  },
+  "impact_counts": {
+    "INDIVIDUAL": 1181,
+    "SMALL_GROUP": 15,
+    "DEPARTMENT_WIDE": 2,
+    "CAMPUS_WIDE": 2
+  },
+  "action_counts": {
+    "CREATE_TASK": 843,
+    "MONITOR": 336,
+    "ESCALATE": 19,
+    "IMMEDIATE_ESCALATION": 2
+  },
+  "average_priority_score": 0.4347916666666667,
+  "output_file": "C:\\Arya my goat\\Datathon\\outputs\\decision_dataset.csv"
+}

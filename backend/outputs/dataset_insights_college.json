@@ -1,0 +1,115 @@
+{
+  "executive_summary": "Analysis of 1,200 feedback records from June 1, 2026 to September 16, 2026 reveals a predominantly negative sentiment profile (66.0% negative, 792 entries) dominated by student frustration (806 occurrences). Action routing is primarily task-based, with 70.25% (843 entries) marked MEDIUM severity / P3 priority requiring task creation. A critical subset of 21 high-severity items (19 HIGH / P2, 2 CRITICAL / P1) requires immediate escalation. Departmental activity is concentrated in General Services (408), Facilities (302), and IT (276), with network connectivity and maintenance issues acting as major operational friction points.",
+  "key_insights": [
+    {
+      "title": "Task Creation Workflows Dominate Feedback Volume",
+      "description": "70.25% of all feedback (843 rows) is categorized as MEDIUM severity and P3 priority, directly mapping to CREATE_TASK workflow actions.",
+      "importance": "HIGH",
+      "evidence": [
+        "Severity MEDIUM: 843 rows (70.25%)",
+        "Priority P3: 843 rows (70.25%)",
+        "Action CREATE_TASK: 843 rows (70.25%)"
+      ]
+    },
+    {
+      "title": "Immediate Escalation Engine Triggers Identified",
+      "description": "A total of 21 cases require explicit escalation, including 2 CRITICAL/P1 incidents triggering immediate escalation and 19 HIGH/P2 incidents requiring standard escalation.",
+      "importance": "CRITICAL",
+      "evidence": [
+        "Severity CRITICAL / Priority P1: 2 rows (0.17%) -> IMMEDIATE_ESCALATION",
+        "Severity HIGH / Priority P2: 19 rows (1.58%) -> ESCALATE"
+      ]
+    },
+    {
+      "title": "Operational Volume Concentrated in Top Three Departments",
+      "description": "General Services (408), Facilities (302), and IT (276) generate 82.17% (986 of 1,200) of all feedback, pointing to connectivity and physical infrastructure as primary concern drivers.",
+      "importance": "HIGH",
+      "evidence": [
+        "General Services: 408 count",
+        "Facilities: 302 count",
+        "IT: 276 count",
+        "Top 3 total: 986 / 1200 (82.17%)"
+      ]
+    }
+  ],
+  "hotspots": [
+    {
+      "dimension": "department",
+      "value": "Cafeteria",
+      "reason": "Concentrated hotspot activity detected within Cafeteria feedback.",
+      "evidence": "Hotspot count of 16 entries in Cafeteria department."
+    },
+    {
+      "dimension": "department",
+      "value": "Facilities",
+      "reason": "Secondary hotspot concentration in physical infrastructure and maintenance.",
+      "evidence": "Hotspot count of 2 entries in Facilities department."
+    }
+  ],
+  "trends": [
+    {
+      "metric": "Sentiment & Emotion Distribution",
+      "direction": "NEGATIVE_DOMINANT",
+      "description": "Feedback sentiment is overwhelmingly negative (66.0%), with Frustration recorded as the leading emotion (806 instances).",
+      "evidence": "Negative sentiment: 792 rows (66.0%), Positive: 336 rows (28.0%), Mixed: 72 rows (6.0%); Frustration: 806 occurrences."
+    }
+  ],
+  "themes": [
+    {
+      "theme": "Campus Infrastructure & IT Connectivity",
+      "description": "Persistent complaints regarding network connectivity, Wi-Fi drops, washroom cleanliness, lift malfunctions, and classroom equipment.",
+      "sentiment": "Negative",
+      "importance": "HIGH"
+    },
+    {
+      "theme": "Academic & Teaching Satisfaction",
+      "description": "High approval for supportive professors, teaching standards, and approachable faculty despite campus facility concerns.",
+      "sentiment": "Positive",
+      "importance": "MEDIUM"
+    }
+  ],
+  "positive_signals": [
+    {
+      "area": "Academic Affairs & Teaching",
+      "description": "Approachable faculty, supportive professors, and strong teaching quality generate positive sentiment and joy.",
+      "evidence": "Aspect sentiments: 'Professor Supportive' (17 positive), 'Teaching Quality' (17 positive); Joy emotion count: 101."
+    },
+    {
+      "area": "Cafeteria & Facilities Specifics",
+      "description": "Positive reception recorded for specific canteen offerings, cleanliness, new classrooms, and lab equipment.",
+      "evidence": "Aspect sentiments: 'Canteen Samosa' (18 positive), 'Lab Equipment' (14 positive), 'Canteen Clean' (14 positive); Satisfaction emotion count: 208."
+    }
+  ],
+  "anomalies": [
+    {
+      "description": "High average sentiment score despite a heavily negative sentiment distribution.",
+      "evidence": "Average sentiment score is reported as 0.9838 while 66.0% (792 of 1,200) of rows are classified as Negative.",
+      "confidence": "HIGH"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "action": "Resolve campus Wi-Fi drops, evening network instability, and online test connectivity issues.",
+      "reason": "Network and Wi-Fi represent the most frequent negative topics (Network: 67, Wifi: 31) and aspect complaints.",
+      "target": "IT Department"
+    },
+    {
+      "priority": "HIGH",
+      "action": "Improve preventive maintenance schedules for washrooms, lifts, projectors, and classroom fans.",
+      "reason": "Facilities logged 302 feedback entries with notable negative aspects in washrooms (29), classroom equipment (22), and projectors (19).",
+      "target": "Facilities Department"
+    },
+    {
+      "priority": "HIGH",
+      "action": "Establish immediate response protocols for the 2 CRITICAL/P1 cases and 19 HIGH/P2 cases.",
+      "reason": "High and critical severity issues pose high operational risk and require verified immediate escalation.",
+      "target": "Executive Response Team"
+    }
+  ],
+  "data_limitations": [
+    "Time-series analysis (time_analysis) is null, preventing evaluation of trends over time across the date range.",
+    "Impact level distribution is heavily concentrated in INDIVIDUAL (98.42%), offering limited granular breakdown of multi-person impacts."
+  ],
+  "generation_status": "GEMINI"
+}
