@@ -10,8 +10,12 @@ from pathlib import Path
 from typing import Any, Protocol
 
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
+try:
+    from sklearn.feature_extraction.text import TfidfVectorizer
+except (ImportError, Exception):
+    TfidfVectorizer = None
 from textblob import TextBlob
+
 
 
 SENTIMENT_LABELS = {"Positive", "Negative", "Neutral", "Mixed"}
@@ -279,26 +283,56 @@ def _candidate_phrases(text: str) -> list[str]:
 def _discover_topics_and_keywords(texts: list[str]) -> tuple[list[str], list[str]]:
     if not texts:
         return [], []
-    vectorizer = TfidfVectorizer(
-        lowercase=True,
-        stop_words=list(GENERIC_TERMS),
-        ngram_range=(1, 3),
-        min_df=1,
-        max_features=4000,
-        token_pattern=r"(?u)\b[\w][\w'-]*\b",
-    )
-    matrix = vectorizer.fit_transform(texts)
-    vocabulary = vectorizer.get_feature_names_out()
+
     topics: list[str] = []
     keywords: list[str] = []
     topic_values_by_row: list[list[str]] = []
+
+    if TfidfVectorizer is not None:
+        try:
+            vectorizer = TfidfVectorizer(
+                lowercase=True,
+                stop_words=list(GENERIC_TERMS),
+                ngram_range=(1, 3),
+                min_df=1,
+                max_features=4000,
+                token_pattern=r"(?u)\b[\w][\w'-]*\b",
+            )
+            matrix = vectorizer.fit_transform(texts)
+            vocabulary = vectorizer.get_feature_names_out()
+            row_weights = [
+                {vocabulary[idx]: w for idx, w in enumerate(matrix[row].toarray().ravel()) if w > 0}
+                for row in range(len(texts))
+            ]
+        except Exception:
+            row_weights = None
+    else:
+        row_weights = None
+
+    if row_weights is None:
+        import math
+        from collections import Counter
+        doc_counts = []
+        df: Counter[str] = Counter()
+        for text in texts:
+            tokens = [w.lower() for w in re.findall(r"(?u)\b[\w][\w'-]*\b", text) if w.lower() not in GENERIC_TERMS]
+            c = Counter(tokens)
+            doc_counts.append(c)
+            for t in c:
+                df[t] += 1
+        num_docs = len(texts) or 1
+        row_weights = [
+            {t: cnt * (math.log((1 + num_docs) / (1 + df[t])) + 1) for t, cnt in counts.items()}
+            for counts in doc_counts
+        ]
+
     for row_index, text in enumerate(texts):
-        weights = matrix[row_index].toarray().ravel()
-        weighted = {vocabulary[index]: weights[index] for index in weights.argsort()[::-1] if weights[index] > 0}
+        weighted = row_weights[row_index]
         candidates = [
             phrase for phrase in _candidate_phrases(text)
             if phrase in weighted or any(part in weighted for part in phrase.split())
         ]
+
         candidates.sort(key=lambda phrase: max(weighted.get(part, 0.0) for part in phrase.split()) * len(phrase.split()), reverse=True)
         selected: list[str] = []
         selected_keywords: list[str] = []

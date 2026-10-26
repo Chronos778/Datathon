@@ -5191,6 +5191,221 @@
   color: #0f172a;
 }
 
+/* ==========================================================================
+   Floating AI Chatbot Launcher (FAB)
+   ========================================================================== */
+.floating-chat-launcher-root {
+  position: fixed;
+  bottom: 24px;
+  right: 28px;
+  z-index: 1100;
+  pointer-events: auto;
+}
 
+.floating-chat-fab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 18px 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #2563eb 100%);
+  color: #ffffff;
+  font-family: var(--font-body), "Inter", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 25px -4px rgba(124, 58, 237, 0.45), 0 4px 10px rgba(15, 23, 42, 0.12);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
 
+.floating-chat-fab:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 16px 32px -4px rgba(124, 58, 237, 0.55), 0 6px 14px rgba(15, 23, 42, 0.15);
+}
 
+.floating-chat-fab.open {
+  background: #0f172a;
+  border-color: #334155;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.fab-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fab-sparkle {
+  color: #fde047;
+  animation: sparkleTwinkle 2.5s infinite ease-in-out;
+}
+
+@keyframes sparkleTwinkle {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.15) rotate(10deg); opacity: 0.9; }
+}
+
+.fab-label {
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.fab-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3);
+  animation: pulseLiveDot 2s infinite;
+}
+
+@keyframes pulseLiveDot {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+/* Chat formatting & meta styles */
+.formatted-chat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-paragraph {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.chat-section-heading {
+  margin: 8px 0 4px 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.chat-quote-block {
+  margin: 4px 0;
+  padding: 6px 12px;
+  background: #f1f5f9;
+  border-left: 3px solid #8b5cf6;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #475569;
+  font-style: italic;
+}
+
+.chat-bullet-list {
+  margin: 2px 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-bullet-list li {
+  line-height: 1.45;
+}
+
+.chat-line-break {
+  height: 4px;
+}
+
+.msg-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.msg-model-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #7c3aed;
+  background: #ede9fe;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.msg-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 10.5px;
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.msg-copy-btn:hover {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.icon-copied {
+  color: #16a34a;
+}
+
+.prompt-chips-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.chips-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.chips-reset-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.typing-text {
+  font-size: 11.5px;
+  color: #64748b;
+  font-style: italic;
+  margin-right: 4px;
+}
+
+.ai-header-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #7c3aed;
+  border-color: #ddd6fe;
+  background: #faf5ff;
+  font-weight: 600;
+}
+
+.ai-header-btn:hover {
+  background: #f3e8ff;
+  border-color: #c084fc;
+  color: #6b21a8;
+}
+
+.icon-purple {
+  color: #8b5cf6;
+}

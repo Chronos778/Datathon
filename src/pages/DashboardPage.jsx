@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CircleAlert, Upload } from "lucide-react";
+import { CircleAlert, Sparkles, Upload, X } from "lucide-react";
 import AspectAnalysis from "../components/dashboard/AspectAnalysis";
 import {
   EmotionDistribution,
@@ -15,7 +15,6 @@ import KpiCards from "../components/dashboard/KpiCards";
 import QuickDock from "../components/dashboard/QuickDock";
 import AiDrawer from "../components/dashboard/AiDrawer";
 import { ContainerScroll } from "../components/ui/container-scroll-animation";
-import { MinimalCard, MinimalCardTitle, MinimalCardDescription } from "../components/ui/minimal-card";
 import {
   aspectAnalysis,
   countBy,
@@ -174,6 +173,7 @@ export default function DashboardPage({ analysis, onHome, onUploadNew }) {
         onHome={onHome}
         onUploadNew={onUploadNew}
         onExport={() => exportFeedback(filteredRecords)}
+        onOpenAi={() => handleOpenAi()}
       />
       <main className="dashboard-main" id="dashboard-top">
         <section className="dashboard-title-row">
@@ -264,6 +264,24 @@ export default function DashboardPage({ analysis, onHome, onUploadNew }) {
         resultCount={filteredRecords.length}
         onOpenAi={handleOpenAi}
       />
+
+      {/* Floating Action Button (FAB) for AI Copilot */}
+      <aside className="floating-chat-launcher-root" aria-label="AI Chatbot Launcher">
+        <button
+          type="button"
+          className={`floating-chat-fab ${isAiOpen ? "open" : ""}`}
+          onClick={() => setIsAiOpen(!isAiOpen)}
+          aria-label={isAiOpen ? "Close AI Copilot" : "Open AI Feedback Copilot"}
+          title={isAiOpen ? "Close AI Copilot" : "Ask AI Copilot"}
+        >
+          <div className="fab-glow-ring" />
+          <div className="fab-icon-wrap">
+            {isAiOpen ? <X size={18} /> : <Sparkles size={18} className="fab-sparkle" />}
+          </div>
+          <span className="fab-label">AI Copilot</span>
+          <span className="fab-pulse-dot" />
+        </button>
+      </aside>
 
       {/* Slide-over Right Side AI Chatbot Drawer */}
       <AiDrawer

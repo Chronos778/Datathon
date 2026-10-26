@@ -1,28 +1,106 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bot,
+  Check,
+  Copy,
+  Cpu,
   RefreshCw,
   Send,
   Sparkles,
   User,
 } from "lucide-react";
+import { askAiChatbot } from "../../services/api";
 
-export default function AiChatbot({ records = [], datasetName = "Active Dataset", initialQuery = "" }) {
+function FormattedContent({ text }) {
+  // Simple, safe markdown-like line processor
+  const lines = text.split("\n");
+  const elements = [];
+  let listItems = [];
+
+  const flushList = () => {
+    if (listItems.length > 0) {
+      elements.push(
+        <ul key={`ul-${elements.length}`} className="chat-bullet-list">
+          {listItems.map((item, idx) => (
+            <li key={idx} dangerouslySetInnerHTML={{ __html: item }} />
+          ))}
+        </ul>
+      );
+      listItems = [];
+    }
+  };
+
+  const formatInline = (str) => {
+    return str
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.*?)\*/g, "<em>$1</em>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>");
+  };
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flushList();
+      elements.push(<div key={`br-${index}`} className="chat-line-break" />);
+      return;
+    }
+
+    if (trimmed.startsWith("### ")) {
+      flushList();
+      elements.push(
+        <h4 key={`h-${index}`} className="chat-section-heading">
+          {trimmed.replace(/^###\s+/, "")}
+        </h4>
+      );
+    } else if (trimmed.startsWith("> ")) {
+      flushList();
+      elements.push(
+        <blockquote
+          key={`quote-${index}`}
+          className="chat-quote-block"
+          dangerouslySetInnerHTML={{ __html: formatInline(trimmed.replace(/^>\s+/, "")) }}
+        />
+      );
+    } else if (trimmed.startsWith("- ") || trimmed.startsWith("• ") || trimmed.startsWith("* ")) {
+      listItems.push(formatInline(trimmed.replace(/^[-•*]\s+/, "")));
+    } else {
+
+      flushList();
+      elements.push(
+        <p
+          key={`p-${index}`}
+          className="chat-paragraph"
+          dangerouslySetInnerHTML={{ __html: formatInline(trimmed) }}
+        />
+      );
+    }
+  });
+
+  flushList();
+  return <div className="formatted-chat-body">{elements}</div>;
+}
+
+export default function AiChatbot({
+  records = [],
+  datasetName = "Active Dataset",
+  initialQuery = "",
+}) {
   const [messages, setMessages] = useState([
     {
       id: "initial-1",
       sender: "ai",
-      text: `Hello! I am your AI Feedback Intelligence Copilot. I have analyzed all **${records.length} feedback records** in "${datasetName}".\n\nYou can ask me anything about customer sentiment, specific departments, pain points, or recommended actions. Or click one of the suggested prompts below!`,
+      text: `Hello! I am your **FeedSense AI Copilot** powered by Google Gemini.\n\nI have indexed all **${records.length.toLocaleString()} feedback records** in "${datasetName}".\n\nAsk me anything about user sentiment, recurring complaints, departmental performance, or prompt me for an action plan!`,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      model: "Gemini Copilot",
     },
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
   const messagesEndRef = useRef(null);
   const lastInitialQueryRef = useRef("");
 
-
-  // Compute live dataset statistics for dynamic responses
+  // Compute live dataset statistics for dynamic prompt suggestions & context
   const analysisStats = useMemo(() => {
     let pos = 0, neg = 0, mix = 0;
     const topicCounts = {};
@@ -32,20 +110,26 @@ export default function AiChatbot({ records = [], datasetName = "Active Dataset"
     const quotes = { positive: [], negative: [] };
 
     records.forEach((r) => {
-      const s = r.sentiment.toLowerCase();
+      const s = String(r.sentiment || "").toLowerCase();
       if (s.includes("pos")) {
         pos += 1;
-        if (quotes.positive.length < 3) quotes.positive.push({ text: r.feedback, topic: r.topics[0] || "General" });
+        if (quotes.positive.length < 3) {
+          quotes.positive.push({ text: r.feedback || r.cleaned_text || "", topic: r.topics?.[0] || "General" });
+        }
       } else if (s.includes("neg")) {
         neg += 1;
-        if (quotes.negative.length < 3) quotes.negative.push({ text: r.feedback, topic: r.topics[0] || "General" });
+        if (quotes.negative.length < 3) {
+          quotes.negative.push({ text: r.feedback || r.cleaned_text || "", topic: r.topics?.[0] || "General" });
+        }
       } else {
         mix += 1;
       }
 
-      emotionCounts[r.emotion] = (emotionCounts[r.emotion] || 0) + 1;
+      if (r.emotion) {
+        emotionCounts[r.emotion] = (emotionCounts[r.emotion] || 0) + 1;
+      }
 
-      r.topics.forEach((t) => {
+      (r.topics || []).forEach((t) => {
         topicCounts[t] = (topicCounts[t] || 0) + 1;
         if (s.includes("neg")) negByTopic[t] = (negByTopic[t] || 0) + 1;
         if (s.includes("pos")) posByTopic[t] = (posByTopic[t] || 0) + 1;
@@ -80,15 +164,20 @@ export default function AiChatbot({ records = [], datasetName = "Active Dataset"
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  const promptSuggestions = [
-    "What are the top 3 customer pain points?",
-    "Why are people unhappy or frustrated?",
-    "What are people loving most?",
-    "Give me an executive 3-step action plan",
-    "Which department needs immediate intervention?",
-  ];
+  const promptSuggestions = useMemo(() => {
+    const topNeg = analysisStats.topNegativeTopics[0]?.[0];
+    const topPos = analysisStats.topPositiveTopics[0]?.[0];
+    return [
+      "What are the top 3 customer pain points?",
+      topNeg ? `Why are users unhappy with ${topNeg}?` : "Why are users unhappy or frustrated?",
+      topPos ? `What do users love about ${topPos}?` : "What are people loving most?",
+      "Give me an executive 3-step action plan",
+      "Which department needs immediate intervention?",
+    ];
+  }, [analysisStats]);
 
-  const generateAnswer = (query) => {
+  // Client-side fallback generator in case backend is unreachable
+  const generateClientFallback = (query) => {
     const q = query.toLowerCase();
     const { total, pos, neg, posRate, negRate, topNegativeTopics, topPositiveTopics, dominantEmotion, quotes } = analysisStats;
 
@@ -106,7 +195,7 @@ export default function AiChatbot({ records = [], datasetName = "Active Dataset"
 
     if (q.includes("action plan") || q.includes("recommend") || q.includes("steps") || q.includes("fix") || q.includes("executive")) {
       const top1 = topNegativeTopics[0]?.[0] || "Facilities";
-      const top2 = topNegativeTopics[1]?.[0] || "Customer Support";
+      const top2 = topNegativeTopics[1]?.[0] || "Support";
       return `### 3-Step High-Conviction Action Plan\n\n1. **Immediate Intervention on ${top1} (P0 Priority):**\n   - Conduct a 48-hour operational audit.\n   - Establish direct communication with impacted cohorts to communicate resolution timelines.\n\n2. **Process Re-engineering for ${top2} (P1 Priority):**\n   - Implement automated alerts and queue management to eliminate friction.\n\n3. **Continuous Sentiment Monitoring:**\n   - Track Net Sentiment Score (currently **${posRate - negRate}**) weekly to verify that corrective measures reflect in new feedback.`;
     }
 
@@ -118,13 +207,12 @@ export default function AiChatbot({ records = [], datasetName = "Active Dataset"
       return `Feedback is well-balanced across departments. Keep monitoring incoming streams for anomalies.`;
     }
 
-    // Default intelligent overview
     return `Analysis summary for **${total} responses** in this dataset:\n\n• **Positive:** ${pos} (${posRate}%)\n• **Negative:** ${neg} (${negRate}%)\n• **Net Sentiment Score (NSS):** ${posRate - negRate}\n• **Primary Complaint Topic:** ${topNegativeTopics[0]?.[0] || "None"}\n• **Primary Strength:** ${topPositiveTopics[0]?.[0] || "None"}\n\nYou can ask me to drill into any specific topic or generate departmental briefs!`;
   };
 
-  const handleSend = (textToSend) => {
+  const handleSend = async (textToSend) => {
     const query = (textToSend || input).trim();
-    if (!query) return;
+    if (!query || isTyping) return;
 
     const userMsg = {
       id: `user-${Date.now()}`,
@@ -137,17 +225,50 @@ export default function AiChatbot({ records = [], datasetName = "Active Dataset"
     setInput("");
     setIsTyping(true);
 
-    setTimeout(() => {
-      const answer = generateAnswer(query);
-      const aiMsg = {
-        id: `ai-${Date.now()}`,
-        sender: "ai",
-        text: answer,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      };
-      setMessages((prev) => [...prev, aiMsg]);
+    try {
+      // 1. Try Gemini via backend API
+      const response = await askAiChatbot({
+        message: query,
+        history: messages.slice(-6),
+        datasetSummary: analysisStats,
+        records,
+        datasetName,
+      });
+
+      if (response && response.reply) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `ai-${Date.now()}`,
+            sender: "ai",
+            text: response.reply,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            model: response.model || (response.status === "gemini" ? "Google Gemini" : "Local Copilot"),
+          },
+        ]);
+        return;
+      }
+    } catch (err) {
+      console.warn("Backend chat failed, falling back to local dataset engine:", err);
+    } finally {
       setIsTyping(false);
-    }, 600);
+    }
+
+    // 2. Client-side fallback if backend was unavailable
+    setTimeout(() => {
+      const fallbackText = generateClientFallback(query);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `ai-${Date.now()}`,
+          sender: "ai",
+          text: fallbackText,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          model: "Local Intelligence",
+        },
+      ]);
+      setIsTyping(false);
+    }, 400);
   };
 
   const handleSendRef = useRef(handleSend);
@@ -160,15 +281,20 @@ export default function AiChatbot({ records = [], datasetName = "Active Dataset"
     }
   }, [initialQuery]);
 
-
+  const copyMessage = (id, text) => {
+    navigator.clipboard?.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1800);
+  };
 
   const clearChat = () => {
     setMessages([
       {
         id: "initial-reset",
         sender: "ai",
-        text: `Chat reset. What would you like to explore across your **${records.length} feedback responses**?`,
+        text: `Conversation reset. What would you like to explore across your **${records.length.toLocaleString()} feedback responses**?`,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        model: "Gemini Copilot",
       },
     ]);
   };
@@ -188,14 +314,30 @@ export default function AiChatbot({ records = [], datasetName = "Active Dataset"
             <p>Query your feedback dataset in plain language</p>
           </div>
         </div>
-        <button type="button" className="btn-icon-ghost" onClick={clearChat} title="Reset Conversation">
+        <button
+          type="button"
+          className="btn-icon-ghost"
+          onClick={clearChat}
+          title="Reset Conversation"
+          aria-label="Reset conversation"
+        >
           <RefreshCw size={14} />
         </button>
       </div>
 
       {/* Suggested Prompt Chips */}
       <div className="prompt-chips-row">
-        <span className="chips-label">Quick Prompts:</span>
+        <div className="prompt-chips-header">
+          <span className="chips-label">Quick Prompts:</span>
+          <button
+            type="button"
+            className="chips-reset-btn"
+            onClick={clearChat}
+            title="Reset Chat"
+          >
+            <RefreshCw size={11} /> Reset
+          </button>
+        </div>
         <div className="chips-scroll">
           {promptSuggestions.map((prompt, idx) => (
             <button
@@ -213,17 +355,45 @@ export default function AiChatbot({ records = [], datasetName = "Active Dataset"
       {/* Chat Messages Log */}
       <div className="chat-messages-area">
         {messages.map((msg) => (
-          <div key={msg.id} className={`chat-message-row ${msg.sender === "user" ? "from-user" : "from-ai"}`}>
+          <div
+            key={msg.id}
+            className={`chat-message-row ${msg.sender === "user" ? "from-user" : "from-ai"}`}
+          >
             <div className="msg-avatar">
               {msg.sender === "user" ? <User size={13} /> : <Sparkles size={13} />}
             </div>
             <div className="msg-content-wrapper">
               <div className="msg-bubble">
-                <div className="markdown-body" style={{ whiteSpace: "pre-line" }}>
-                  {msg.text}
-                </div>
+                <FormattedContent text={msg.text} />
               </div>
-              <span className="msg-time">{msg.timestamp}</span>
+              <div className="msg-meta-row">
+                <span className="msg-time">{msg.timestamp}</span>
+                {msg.sender === "ai" && (
+                  <>
+                    {msg.model && (
+                      <span className="msg-model-tag">
+                        <Cpu size={10} /> {msg.model}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="msg-copy-btn"
+                      onClick={() => copyMessage(msg.id, msg.text)}
+                      title="Copy response"
+                    >
+                      {copiedId === msg.id ? (
+                        <>
+                          <Check size={11} className="icon-copied" /> Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={11} /> Copy
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -233,10 +403,13 @@ export default function AiChatbot({ records = [], datasetName = "Active Dataset"
             <div className="msg-avatar">
               <Sparkles size={13} />
             </div>
-            <div className="msg-bubble typing-bubble">
-              <span className="dot" />
-              <span className="dot" />
-              <span className="dot" />
+            <div className="msg-content-wrapper">
+              <div className="msg-bubble typing-bubble">
+                <span className="typing-text">Analyzing dataset with Gemini</span>
+                <span className="dot" />
+                <span className="dot" />
+                <span className="dot" />
+              </div>
             </div>
           </div>
         )}
@@ -254,15 +427,17 @@ export default function AiChatbot({ records = [], datasetName = "Active Dataset"
         <input
           type="text"
           className="chat-input-field"
-          placeholder="Ask a question about user feedback, complaints, or positive trends..."
+          placeholder="Ask AI anything about complaints, positive trends, or departments..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          disabled={isTyping}
         />
         <button
           type="submit"
           className="chat-send-btn"
           disabled={!input.trim() || isTyping}
           title="Send message"
+          aria-label="Send message"
         >
           <Send size={15} />
         </button>

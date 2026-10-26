@@ -5,6 +5,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+# Load both backend/.env and root .env
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
@@ -18,4 +20,5 @@ def gemini_api_keys() -> list[str]:
 
 
 def gemini_model() -> str:
-    return os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+    return os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+

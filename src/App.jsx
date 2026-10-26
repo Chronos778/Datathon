@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import LandingPage from "./pages/LandingPage";
 import AnalyzePage from "./pages/AnalyzePage";
 import DashboardPage from "./pages/DashboardPage";
+import FloatingChatWidget from "./components/ui/FloatingChatWidget";
 import "./analysis.css";
 
 const storageKey = "feedsense-analysis";
@@ -41,11 +42,14 @@ export default function App() {
 
   if (path === "/analyze") {
     return (
-      <AnalyzePage
-        onHome={() => navigate("/")}
-        onComplete={saveAnalysis}
-        onDashboard={() => navigate("/dashboard")}
-      />
+      <>
+        <AnalyzePage
+          onHome={() => navigate("/")}
+          onComplete={saveAnalysis}
+          onDashboard={() => navigate("/dashboard")}
+        />
+        <FloatingChatWidget analysis={analysis} onNavigate={navigate} />
+      </>
     );
   }
 
@@ -57,14 +61,23 @@ export default function App() {
         onUploadNew={() => navigate("/analyze")}
       />
     ) : (
-      <AnalyzePage
-        onHome={() => navigate("/")}
-        onComplete={saveAnalysis}
-        onDashboard={() => navigate("/dashboard")}
-        missingAnalysis
-      />
+      <>
+        <AnalyzePage
+          onHome={() => navigate("/")}
+          onComplete={saveAnalysis}
+          onDashboard={() => navigate("/dashboard")}
+          missingAnalysis
+        />
+        <FloatingChatWidget analysis={analysis} onNavigate={navigate} />
+      </>
     );
   }
 
-  return <LandingPage onAnalyze={() => navigate("/analyze")} />;
+  return (
+    <>
+      <LandingPage onAnalyze={() => navigate("/analyze")} />
+      <FloatingChatWidget analysis={analysis} onNavigate={navigate} />
+    </>
+  );
 }
+

@@ -1131,6 +1131,24 @@ export function TopicSentimentChart({
             <span className="radar-dot mix" />
             <span>Mixed / Neutral</span>
           </button>
+          <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
+            <button
+              type="button"
+              className={`radar-legend-btn ${viewMode === "aspects" ? "active" : ""}`}
+              onClick={() => onViewModeChange("aspects")}
+              title="View by Aspect"
+            >
+              Aspects
+            </button>
+            <button
+              type="button"
+              className={`radar-legend-btn ${viewMode === "topics" ? "active" : ""}`}
+              onClick={() => onViewModeChange("topics")}
+              title="View by Topic"
+            >
+              Topics
+            </button>
+          </div>
         </div>
 
         <div className="radar-body-layout">

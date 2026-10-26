@@ -1,9 +1,16 @@
-import { Download, Upload } from "lucide-react";
+import { Download, Sparkles, Upload } from "lucide-react";
 import AppBrand from "../AppBrand";
 
 const sections = ["Overview", "Sentiment", "Topics", "Feedback"];
 
-export default function DashboardHeader({ activeSection, onSection, onHome, onUploadNew, onExport }) {
+export default function DashboardHeader({
+  activeSection,
+  onSection,
+  onHome,
+  onUploadNew,
+  onExport,
+  onOpenAi,
+}) {
   return (
     <header className="dashboard-header">
       <AppBrand onClick={onHome} />
@@ -20,6 +27,16 @@ export default function DashboardHeader({ activeSection, onSection, onHome, onUp
         ))}
       </nav>
       <div className="dashboard-actions">
+        {onOpenAi && (
+          <button
+            className="outline-button small ai-header-btn"
+            type="button"
+            onClick={onOpenAi}
+            title="Open AI Feedback Copilot"
+          >
+            <Sparkles size={14} className="icon-purple" /> AI Copilot
+          </button>
+        )}
         <button className="outline-button small" type="button" onClick={onUploadNew}>
           <Upload size={15} /> Upload new
         </button>
@@ -30,3 +47,4 @@ export default function DashboardHeader({ activeSection, onSection, onHome, onUp
     </header>
   );
 }
+

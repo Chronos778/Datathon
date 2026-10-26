@@ -23,6 +23,7 @@ from app.decision.graph import run_decision
 from app.decision.schemas import AnalyzedFeedback, DecisionResponse
 from app.insights.node import generate_dataset_insights
 from app.insights.schemas import DatasetInsights
+from app.chat import chat_with_copilot, ChatRequest, ChatResponse
 
 app = FastAPI(title="FeedbackIQ Preprocessing API", version="0.1.0")
 
@@ -224,6 +225,14 @@ async def insights(request: InsightsRequest) -> DatasetInsights:
 	if not request.records:
 		raise HTTPException(status_code=400, detail="At least one record is required.")
 	return generate_dataset_insights(request.records, domain=request.domain)
+
+
+@app.post("/api/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest) -> dict:
+	"""Conversational AI Copilot grounded in feedback dataset context."""
+	if not request.message or not request.message.strip():
+		raise HTTPException(status_code=400, detail="Message cannot be empty.")
+	return chat_with_copilot(request)
 
 
 __all__ = ["app", "clean_dataset"]

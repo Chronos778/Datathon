@@ -127,5 +127,60 @@ export async function fetchSampleDataset(): Promise<AnalysisResponse | null> {
   return null;
 }
 
+export async function askAiChatbot({
+  message,
+  history = [],
+  datasetSummary = null,
+  records = [],
+  datasetName = "Active Dataset",
+}: {
+  message: string;
+  history?: Array<{ sender: string; text: string }>;
+  datasetSummary?: any;
+  records?: any[];
+  datasetName?: string;
+}): Promise<{ reply: string; status: string; model?: string } | null> {
+  if (API_BASE_URL) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message,
+          history: history.map((m) => ({
+            role: m.sender === "user" ? "user" : "model",
+            content: m.text,
+          })),
+          dataset_summary: datasetSummary,
+          records: records.slice(0, 100).map((r) => ({
+            feedback: r.feedback || r.cleaned_text || "",
+            sentiment: r.sentiment || "",
+            topics: r.topics || [],
+            emotion: r.emotion || "",
+            keywords: r.keywords || [],
+          })),
+          dataset_name: datasetName,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          reply: data.reply,
+          status: data.status,
+          model: data.model,
+        };
+      }
+    } catch (err) {
+      console.warn("Backend chat API call failed, using client generator:", err);
+    }
+  }
+
+  return null;
+}
+
 export const apiMode = "live";
+
 
