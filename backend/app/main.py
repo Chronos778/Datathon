@@ -185,6 +185,8 @@ async def analyze(file: UploadFile = File(...)) -> dict:
 def get_sample_dataset() -> dict:
 	"""Return the pre-analyzed college dataset with decision metrics if available."""
 	sample_csv = Path("outputs/decision_dataset.csv")
+	if not sample_csv.exists():
+		sample_csv = Path(__file__).resolve().parents[1] / "outputs" / "decision_dataset.csv"
 	if sample_csv.exists():
 		import pandas as pd
 		df = pd.read_csv(sample_csv)
