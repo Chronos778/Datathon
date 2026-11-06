@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from uuid import uuid4
@@ -11,6 +12,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from app.config import cors_origins, max_upload_bytes
 from app.preprocessing import (
 	export_cleaned_dataset as write_cleaned_dataset,
 	export_preprocessing_report,
@@ -25,12 +27,17 @@ from app.insights.node import generate_dataset_insights
 from app.insights.schemas import DatasetInsights
 from app.chat import chat_with_copilot, ChatRequest, ChatResponse
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="FeedbackIQ Preprocessing API", version="0.1.0")
+
+_origins = cors_origins()
+_is_wildcard = "*" in _origins
 
 app.add_middleware(
 	CORSMiddleware,
-	allow_origins=["*"],
-	allow_credentials=True,
+	allow_origins=_origins if not _is_wildcard else ["*"],
+	allow_credentials=not _is_wildcard,
 	allow_methods=["*"],
 	allow_headers=["*"],
 )
@@ -68,7 +75,16 @@ async def preprocess(
 	if suffix not in {".csv", ".xlsx", ".xlsm"}:
 		raise HTTPException(status_code=400, detail="Only CSV, XLSX, and XLSM files are supported.")
 
-	content = await file.read()
+	max_bytes = max_upload_bytes()
+	content = await file.read(max_bytes + 1)
+	if len(content) > max_bytes:
+		raise HTTPException(
+			status_code=413,
+			detail=f"The uploaded file exceeds the maximum allowed size of {max_bytes // (1024 * 1024)} MB.",
+		)
+	if not content:
+		raise HTTPException(status_code=400, detail="The uploaded file is empty.")
+
 	temporary_file = NamedTemporaryFile(suffix=suffix, delete=False)
 	temporary_path = Path(temporary_file.name)
 	try:
@@ -77,7 +93,14 @@ async def preprocess(
 		result = clean_dataset(temporary_path)
 	except DatasetInputError as error:
 		raise HTTPException(status_code=400, detail=str(error)) from error
+	except Exception as error:
+		logger.exception("Unexpected error during preprocessing")
+		raise HTTPException(status_code=400, detail=f"Failed to process file: {str(error)}") from error
 	finally:
+		try:
+			temporary_file.close()
+		except Exception:
+			pass
 		temporary_path.unlink(missing_ok=True)
 
 	response = {
@@ -136,7 +159,17 @@ async def analyze(file: UploadFile = File(...)) -> dict:
 	suffix = Path(file.filename or "").suffix.casefold()
 	if suffix not in {".csv", ".xlsx", ".xlsm"}:
 		raise HTTPException(status_code=400, detail="Only CSV, XLSX, and XLSM files are supported.")
-	content = await file.read()
+
+	max_bytes = max_upload_bytes()
+	content = await file.read(max_bytes + 1)
+	if len(content) > max_bytes:
+		raise HTTPException(
+			status_code=413,
+			detail=f"The uploaded file exceeds the maximum allowed size of {max_bytes // (1024 * 1024)} MB.",
+		)
+	if not content:
+		raise HTTPException(status_code=400, detail="The uploaded file is empty.")
+
 	temporary_file = NamedTemporaryFile(suffix=suffix, delete=False)
 	temporary_path = Path(temporary_file.name)
 	try:
@@ -149,7 +182,14 @@ async def analyze(file: UploadFile = File(...)) -> dict:
 		analyzed_path = export_analyzed_dataset(analyzed, f"outputs/analyzed_dataset_{file_token}.csv")
 	except (DatasetInputError, ValueError) as error:
 		raise HTTPException(status_code=400, detail=str(error)) from error
+	except Exception as error:
+		logger.exception("Unexpected error during analysis")
+		raise HTTPException(status_code=400, detail=f"Failed to analyze file: {str(error)}") from error
 	finally:
+		try:
+			temporary_file.close()
+		except Exception:
+			pass
 		temporary_path.unlink(missing_ok=True)
 
 	raw_records = json.loads(analyzed.to_json(orient="records", date_format="iso"))
@@ -234,6 +274,8 @@ async def chat(request: ChatRequest) -> dict:
 	"""Conversational AI Copilot grounded in feedback dataset context."""
 	if not request.message or not request.message.strip():
 		raise HTTPException(status_code=400, detail="Message cannot be empty.")
+	if len(request.message) > 4000:
+		raise HTTPException(status_code=400, detail="Message exceeds maximum allowed length of 4000 characters.")
 	return chat_with_copilot(request)
 
 

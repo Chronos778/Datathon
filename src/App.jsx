@@ -37,7 +37,20 @@ export default function App() {
 
   const saveAnalysis = useCallback((response) => {
     setAnalysis(response);
-    window.localStorage.setItem(storageKey, JSON.stringify(response));
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(response));
+    } catch (storageError) {
+      console.warn("Could not persist full analysis to localStorage (quota exceeded):", storageError);
+      try {
+        const lightweight = {
+          ...response,
+          feedback: (response.feedback || []).slice(0, 300),
+        };
+        window.localStorage.setItem(storageKey, JSON.stringify(lightweight));
+      } catch {
+        // Keep in React memory
+      }
+    }
   }, []);
 
   if (path === "/analyze") {

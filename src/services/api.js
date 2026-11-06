@@ -49,7 +49,7 @@ export async function analyzeFeedback(file, onProgress) {
 
       onProgress?.(1);
       const controller = new AbortController();
-      const timeoutId = window.setTimeout(() => controller.abort(), 20000);
+      const timeoutId = window.setTimeout(() => controller.abort(), 60000);
 
       onProgress?.(2);
       let response = await fetch(`${API_BASE_URL}/api/analyze`, {

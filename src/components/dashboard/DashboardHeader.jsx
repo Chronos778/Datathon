@@ -1,7 +1,7 @@
 import { Download, Sparkles, Upload } from "lucide-react";
 import AppBrand from "../AppBrand";
 
-const sections = ["Overview", "Sentiment", "Topics", "Feedback"];
+const sections = ["Overview", "Sentiment", "Topics", "Decisions", "Report", "Feedback"];
 
 export default function DashboardHeader({
   activeSection,

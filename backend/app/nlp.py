@@ -116,6 +116,17 @@ def _contextual_sentiment(
     return label, round(max(0.0, min(1.0, confidence)), 4), polarity
 
 
+def _is_hf_reachable() -> bool:
+    if os.getenv("HF_HUB_OFFLINE") == "1" or os.getenv("TRANSFORMERS_OFFLINE") == "1":
+        return False
+    try:
+        import socket
+        with socket.create_connection(("huggingface.co", 443), timeout=1.0):
+            return True
+    except Exception:
+        return False
+
+
 class TransformerSentimentProvider:
     """Lazy, CPU-friendly Hugging Face sentiment provider with TextBlob fallback."""
 
@@ -124,13 +135,24 @@ class TransformerSentimentProvider:
     def _load(self) -> bool:
         if "loaded" in _TRANSFORMER_CACHE:
             return bool(_TRANSFORMER_CACHE["loaded"])
+        if os.getenv("FEEDBACKIQ_DISABLE_TRANSFORMER", "").lower() in {"1", "true", "yes"}:
+            _TRANSFORMER_CACHE.update({"loaded": False, "error": "disabled"})
+            return False
         try:
             import torch
             from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            tokenizer = AutoTokenizer.from_pretrained(_TRANSFORMER_MODEL_NAME)
-            model = AutoModelForSequenceClassification.from_pretrained(_TRANSFORMER_MODEL_NAME)
+            is_offline = not _is_hf_reachable()
+            try:
+                tokenizer = AutoTokenizer.from_pretrained(_TRANSFORMER_MODEL_NAME, local_files_only=True)
+                model = AutoModelForSequenceClassification.from_pretrained(_TRANSFORMER_MODEL_NAME, local_files_only=True)
+            except Exception:
+                if is_offline:
+                    raise RuntimeError("Hugging Face hub is offline or unreachable; using offline fallback.")
+                tokenizer = AutoTokenizer.from_pretrained(_TRANSFORMER_MODEL_NAME)
+                model = AutoModelForSequenceClassification.from_pretrained(_TRANSFORMER_MODEL_NAME)
+
             model.to(device)
             model.eval()
             _TRANSFORMER_CACHE.update({"loaded": True, "tokenizer": tokenizer, "model": model, "device": device})
@@ -178,10 +200,20 @@ class SemanticTopicGrouper:
     def _load(self) -> Any | None:
         if "attempted" in _EMBEDDING_CACHE:
             return _EMBEDDING_CACHE.get("model")
+        if os.getenv("FEEDBACKIQ_DISABLE_EMBEDDINGS", "").lower() in {"1", "true", "yes"}:
+            _EMBEDDING_CACHE.update({"attempted": True, "model": None})
+            return None
         try:
             from sentence_transformers import SentenceTransformer
 
-            model = SentenceTransformer(os.getenv("FEEDBACKIQ_EMBEDDING_MODEL", "all-MiniLM-L6-v2"))
+            model_name = os.getenv("FEEDBACKIQ_EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+            is_offline = not _is_hf_reachable()
+            try:
+                model = SentenceTransformer(model_name, local_files_only=True)
+            except Exception:
+                if is_offline:
+                    raise RuntimeError("Hugging Face hub is offline or unreachable; skipping semantic grouping.")
+                model = SentenceTransformer(model_name)
             _EMBEDDING_CACHE.update({"attempted": True, "model": model})
         except Exception as error:  # optional model/download failure must not break NLP
             _EMBEDDING_CACHE.update({"attempted": True, "model": None, "error": str(error)})
@@ -235,7 +267,7 @@ class TextBlobSentimentProvider:
         else:
             label = "Neutral"
         confidence = min(1.0, 0.5 + abs(polarity) * 0.5 + (0.08 if label == "Mixed" else 0))
-        return label, round(confidence, 4), polarity
+        return _contextual_sentiment(text, label, confidence, polarity, margin=abs(polarity))
 
 
 def _emotion(label: str, polarity: float, subjectivity: float, text: str) -> str:

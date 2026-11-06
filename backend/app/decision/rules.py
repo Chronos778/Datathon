@@ -35,11 +35,12 @@ def assess_severity(state: dict[str, Any]) -> tuple[str, str]:
 
 def decide_priority(state: dict[str, Any]) -> tuple[str, float, str]:
     scores = {"LOW": 0.25, "MEDIUM": 0.5, "HIGH": 0.75, "CRITICAL": 1.0}
-    score = scores[state["severity"]]
+    severity = str(state.get("severity", "LOW")).upper()
+    score = scores.get(severity, 0.25)
     if state.get("impact_level") in {"DEPARTMENT_WIDE", "CAMPUS_WIDE"}:
         score = min(1.0, score + 0.1)
     priority = "P1" if score >= 0.9 else "P2" if score >= 0.65 else "P3" if score >= 0.4 else "P4"
-    return priority, round(score, 2), f"Priority is based on severity ({state['severity']}) and assessed impact."
+    return priority, round(score, 2), f"Priority is based on severity ({severity}) and assessed impact."
 
 
 def route_department(state: dict[str, Any], profile: DomainProfile | None = None) -> tuple[str, str]:
@@ -58,11 +59,13 @@ def assess_impact(state: dict[str, Any]) -> tuple[str, str]:
 
 
 def decide_action(state: dict[str, Any]) -> tuple[str, str]:
-    if state["severity"] == "CRITICAL" and state["impact_level"] == "CAMPUS_WIDE":
+    severity = str(state.get("severity", "")).upper()
+    impact = str(state.get("impact_level", "")).upper()
+    if severity == "CRITICAL" and impact == "CAMPUS_WIDE":
         return "IMMEDIATE_ESCALATION", "Critical campus-wide issues require immediate escalation."
-    if state["severity"] == "HIGH":
+    if severity in {"CRITICAL", "HIGH"}:
         return "ESCALATE", "High-severity feedback should be escalated to the responsible department."
-    if state["severity"] == "MEDIUM":
+    if severity == "MEDIUM":
         return "CREATE_TASK", "Medium-severity feedback should create a trackable remediation task."
     if state.get("sentiment") in {"Negative", "Mixed"}:
         return "RESPOND", "A direct response is appropriate for non-critical concerns."

@@ -15,6 +15,20 @@ REQUIRED_FIELDS = (
 
 
 def input_validator(state: FeedbackState) -> FeedbackState:
+    # Normalize aliases if slightly different field names are provided
+    if not state.get("feedback") and state.get("cleaned_text"):
+        state["feedback"] = state["cleaned_text"]
+    elif not state.get("feedback") and state.get("text"):
+        state["feedback"] = state["text"]
+    if not state.get("cleaned_text") and state.get("feedback"):
+        state["cleaned_text"] = state["feedback"]
+    if state.get("sentiment_score") is None and state.get("sentiment_confidence") is not None:
+        state["sentiment_score"] = state["sentiment_confidence"]
+    elif state.get("sentiment_confidence") is None and state.get("sentiment_score") is not None:
+        state["sentiment_confidence"] = state["sentiment_score"]
+    if state.get("aspect_sentiments") is None:
+        state["aspect_sentiments"] = []
+
     errors = [f"Missing required field: {field}" for field in REQUIRED_FIELDS if field not in state or state[field] is None]
     return {"validation_status": "INVALID" if errors else "VALID", "validation_errors": errors}
 

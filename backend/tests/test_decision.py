@@ -84,7 +84,11 @@ def test_decision_api_accepts_analyzed_record() -> None:
 
 
 def test_real_analyzed_csv_row_when_available() -> None:
-    paths = list(Path(__file__).parents[2].rglob("analyzed_dataset_transformer(2).csv"))
+    candidate_paths = [
+        Path(__file__).parents[1] / "outputs" / "analyzed_dataset_transformer(2).csv",
+        Path(__file__).parents[2] / "analyzed_dataset_transformer(2).csv",
+    ]
+    paths = [p for p in candidate_paths if p.is_file()]
     if not paths:
         pytest.skip("analyzed_dataset_transformer(2).csv is not present in this checkout")
     row = pd.read_csv(paths[0]).iloc[0].to_dict()

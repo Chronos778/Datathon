@@ -27,12 +27,17 @@ class DatasetInsightChain:
                 model=gemini_model(),
                 google_api_key=keys[0],
                 temperature=0,
+                transport="rest",
+                timeout=10,
+                max_retries=1,
             ).with_structured_output(DatasetInsights)
             result = (prompt | model).invoke({"context": context})
             if isinstance(result, DatasetInsights):
                 result.generation_status = "GEMINI"
                 return result
-            return DatasetInsights.model_validate(result)
+            validated = DatasetInsights.model_validate(result)
+            validated.generation_status = "GEMINI"
+            return validated
         except Exception as error:
             logger.warning("[Gemini Insights] generation failed: %s", type(error).__name__)
             return self.fallback(context)

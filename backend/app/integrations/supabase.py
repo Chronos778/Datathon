@@ -16,5 +16,8 @@ class SupabaseDecisionStore:
     def save_decision(self, decision: dict[str, Any]) -> dict[str, Any]:
         if self.client is None:
             return {"status": "NOT_CONFIGURED"}
-        result = self.client.table("decisions").insert(decision).execute()
-        return {"status": "PERSISTED", "data": result.data}
+        try:
+            result = self.client.table("decisions").insert(decision).execute()
+            return {"status": "PERSISTED", "data": result.data}
+        except Exception as error:
+            return {"status": "ERROR", "error": str(error)}

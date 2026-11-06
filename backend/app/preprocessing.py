@@ -243,25 +243,28 @@ def _read_dataframe(file_path: str | Path) -> pd.DataFrame:
     if not path.is_file():
         raise DatasetInputError(f"Dataset file does not exist: {path}")
     suffix = path.suffix.casefold()
-    if suffix == ".csv":
-        try:
-            return pd.read_csv(
-                path,
-                encoding="utf-8-sig",
-                keep_default_na=False,
-                engine="python",
-                skip_blank_lines=False,
-            )
-        except UnicodeDecodeError:
-            return pd.read_csv(
-                path,
-                encoding="cp1252",
-                keep_default_na=False,
-                engine="python",
-                skip_blank_lines=False,
-            )
-    if suffix in {".xlsx", ".xlsm"}:
-        return pd.read_excel(path)
+    try:
+        if suffix == ".csv":
+            try:
+                return pd.read_csv(
+                    path,
+                    encoding="utf-8-sig",
+                    keep_default_na=False,
+                    engine="python",
+                    skip_blank_lines=False,
+                )
+            except UnicodeDecodeError:
+                return pd.read_csv(
+                    path,
+                    encoding="cp1252",
+                    keep_default_na=False,
+                    engine="python",
+                    skip_blank_lines=False,
+                )
+        if suffix in {".xlsx", ".xlsm"}:
+            return pd.read_excel(path)
+    except (pd.errors.EmptyDataError, pd.errors.ParserError) as error:
+        raise DatasetInputError(f"The dataset file is empty or unreadable: {str(error)}") from error
     raise DatasetInputError("Supported dataset formats are CSV, XLSX, and XLSM.")
 
 

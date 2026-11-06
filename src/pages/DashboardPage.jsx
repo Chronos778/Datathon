@@ -9,6 +9,8 @@ import {
   TrendingWordsChart,
 } from "../components/dashboard/Charts";
 import DashboardHeader from "../components/dashboard/DashboardHeader";
+import DecisionEngine from "../components/dashboard/DecisionEngine";
+import ExecutiveReport from "../components/dashboard/ExecutiveReport";
 import FeedbackDetail from "../components/dashboard/FeedbackDetail";
 import FeedbackExplorer from "../components/dashboard/FeedbackExplorer";
 import KpiCards from "../components/dashboard/KpiCards";
@@ -195,7 +197,9 @@ export default function DashboardPage({ analysis, onHome, onUploadNew }) {
             total={filteredRecords.length}
             onSelect={(value) => selectAndExplore("emotion", value)}
           />
-          <SentimentDistribution counts={counts} onSelect={(value) => setFilter("sentiment", value)} />
+          <div id="sentiment" className="sentiment-distribution-anchor">
+            <SentimentDistribution counts={counts} onSelect={(value) => setFilter("sentiment", value)} />
+          </div>
           <TopicSentimentChart
             aspectData={aspects}
             baseAspectData={allAspects}
@@ -229,26 +233,42 @@ export default function DashboardPage({ analysis, onHome, onUploadNew }) {
           <AspectAnalysis rows={aspects} onSelect={(value) => selectAndExplore("topic", value)} />
         </section>
 
-        <ContainerScroll
-          titleComponent={
-            <div className="container-scroll-title-wrap">
-              <span className="section-label">Verified Responses</span>
-              <h2 className="container-scroll-heading">
-                Feedback Explorer & Inspector
-              </h2>
-            </div>
-          }
-        >
-          <FeedbackExplorer
-            records={explorerRecords}
-            search={search}
-            onSearch={setSearch}
-            filters={filters}
-            options={options}
-            onFilter={setFilter}
-            onOpen={setSelectedRecord}
+        <section id="decisions" className="dashboard-feature-section">
+          <DecisionEngine
+            records={filteredRecords}
+            onDrillDownTopic={(topic) => selectAndExplore("topic", topic)}
           />
-        </ContainerScroll>
+        </section>
+
+        <section id="report" className="dashboard-feature-section">
+          <ExecutiveReport
+            records={filteredRecords}
+            datasetName={analysis.dataset.name}
+          />
+        </section>
+
+        <section id="feedback" className="dashboard-feature-section">
+          <ContainerScroll
+            titleComponent={
+              <div className="container-scroll-title-wrap">
+                <span className="section-label">Verified Responses</span>
+                <h2 className="container-scroll-heading">
+                  Feedback Explorer & Inspector
+                </h2>
+              </div>
+            }
+          >
+            <FeedbackExplorer
+              records={explorerRecords}
+              search={search}
+              onSearch={setSearch}
+              filters={filters}
+              options={options}
+              onFilter={setFilter}
+              onOpen={setSelectedRecord}
+            />
+          </ContainerScroll>
+        </section>
       </main>
       <FeedbackDetail record={selectedRecord} onClose={() => setSelectedRecord(null)} />
 
