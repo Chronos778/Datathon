@@ -139,46 +139,40 @@ export async function askAiChatbot({
   datasetSummary?: any;
   records?: any[];
   datasetName?: string;
-}): Promise<{ reply: string; status: string; model?: string } | null> {
-  if (API_BASE_URL) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message,
-          history: history.map((m) => ({
-            role: m.sender === "user" ? "user" : "model",
-            content: m.text,
-          })),
-          dataset_summary: datasetSummary,
-          records: records.slice(0, 100).map((r) => ({
-            feedback: r.feedback || r.cleaned_text || "",
-            sentiment: r.sentiment || "",
-            topics: r.topics || [],
-            emotion: r.emotion || "",
-            keywords: r.keywords || [],
-          })),
-          dataset_name: datasetName,
-        }),
-      });
+}): Promise<{ reply: string; status: "gemini"; model?: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      message,
+      history: history.map((m) => ({
+        role: m.sender === "user" ? "user" : "model",
+        content: m.text,
+      })),
+      dataset_summary: datasetSummary,
+      records: records.slice(0, 100).map((r) => ({
+        feedback: r.feedback || r.cleaned_text || "",
+        sentiment: r.sentiment || "",
+        topics: r.topics || [],
+        emotion: r.emotion || "",
+        keywords: r.keywords || [],
+      })),
+      dataset_name: datasetName,
+    }),
+  });
 
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          reply: data.reply,
-          status: data.status,
-          model: data.model,
-        };
-      }
-    } catch (err) {
-      console.warn("Backend chat API call failed, using client generator:", err);
-    }
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.detail || "The Gemini service could not answer this question.");
   }
 
-  return null;
+  if (data.status !== "gemini" || !data.reply) {
+    throw new Error("The backend did not return a Gemini answer.");
+  }
+
+  return { reply: data.reply, status: "gemini", model: data.model };
 }
 
 export const apiMode = "live";

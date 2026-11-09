@@ -39,7 +39,7 @@ export default function AiDrawer({
               <div className="ai-drawer-title-row">
                 <h3>AI Feedback Intelligence</h3>
                 <span className="ai-live-badge">
-                  <Sparkles size={11} /> Live Copilot
+                  <Sparkles size={11} /> Dataset Copilot
                 </span>
               </div>
               <p className="ai-drawer-sub">

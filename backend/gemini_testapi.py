@@ -1,18 +1,14 @@
 from __future__ import annotations
 
-import os
 import sys
-from pathlib import Path
 
-from dotenv import load_dotenv
-
-load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+from app.config import gemini_api_keys, gemini_model
 
 
 def main() -> int:
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash").strip()
-    if not api_key:
+    api_keys = gemini_api_keys()
+    model = gemini_model()
+    if not api_keys:
         print("ERROR: GEMINI_API_KEY is missing or empty.")
         return 1
 
@@ -25,7 +21,7 @@ def main() -> int:
     print(f"Testing Gemini model: {model}")
     print("Sending exactly one request...")
     try:
-        client = genai.Client(api_key=api_key)
+        client = genai.Client(api_key=api_keys[0])
         response = client.models.generate_content(
             model=model,
             contents="Reply with exactly: Gemini API test successful",

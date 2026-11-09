@@ -25,7 +25,7 @@ from app.decision.graph import run_decision
 from app.decision.schemas import AnalyzedFeedback, DecisionResponse
 from app.insights.node import generate_dataset_insights
 from app.insights.schemas import DatasetInsights
-from app.chat import chat_with_copilot, ChatRequest, ChatResponse
+from app.chat import chat_with_copilot, ChatRequest, ChatResponse, GeminiUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -276,7 +276,11 @@ async def chat(request: ChatRequest) -> dict:
 		raise HTTPException(status_code=400, detail="Message cannot be empty.")
 	if len(request.message) > 4000:
 		raise HTTPException(status_code=400, detail="Message exceeds maximum allowed length of 4000 characters.")
-	return chat_with_copilot(request)
+	try:
+		return chat_with_copilot(request)
+	except GeminiUnavailableError as error:
+		logger.error("Gemini chat unavailable: %s", error)
+		raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 __all__ = ["app", "clean_dataset"]
