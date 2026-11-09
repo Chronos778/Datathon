@@ -4,9 +4,8 @@ import AppBrand from "../components/AppBrand";
 import AnalysisProgress from "../components/upload/AnalysisProgress";
 import FilePreview from "../components/upload/FilePreview";
 import UploadZone from "../components/upload/UploadZone";
-import { sampleCsv } from "../data/mockData";
 import { inspectCsv } from "../lib/csv";
-import { analyzeFeedback, fetchSampleDataset, apiMode } from "../services/api";
+import { analyzeFeedback, apiMode } from "../services/api";
 
 export default function AnalyzePage({
   onHome,
@@ -52,18 +51,13 @@ export default function AnalyzePage({
 
   async function useSampleDataset() {
     try {
-      const sampleResponse = await fetchSampleDataset();
-      if (sampleResponse && sampleResponse.feedback && sampleResponse.feedback.length > 0) {
-        setResult(sampleResponse);
-        onComplete(sampleResponse);
-        setPhase("complete");
-        return;
-      }
+      const response = await fetch("/feedbackiq_messy_1200.csv");
+      if (!response.ok) throw new Error("The Datathon demo dataset could not be loaded.");
+      const csv = await response.blob();
+      await selectFile(new File([csv], "feedbackiq_messy_1200.csv", { type: "text/csv" }));
     } catch (e) {
-      console.warn("Could not direct load sample dataset:", e);
+      setError(e.message || "The Datathon demo dataset could not be loaded.");
     }
-    const sample = new File([sampleCsv], "campus_feedback_demo.csv", { type: "text/csv" });
-    selectFile(sample);
   }
 
   function removeFile() {
@@ -133,7 +127,7 @@ export default function AnalyzePage({
                 <div className="sample-row">
                   <span>Need a dataset for the demo?</span>
                   <button type="button" onClick={useSampleDataset}>
-                    <Database size={15} /> Use sample dataset
+                    <Database size={15} /> Use Datathon demo dataset
                   </button>
                 </div>
               </>
