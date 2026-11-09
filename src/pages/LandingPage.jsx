@@ -265,9 +265,6 @@ function Header({ menuOpen, setMenuOpen, onAnalyze }) {
           </a>
         </nav>
         <div className="nav-actions">
-          <a className="text-link" href="#dashboard">
-            Sign in
-          </a>
           <a
             className="outline-button small"
             href="/analyze"
