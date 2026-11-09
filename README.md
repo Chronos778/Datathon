@@ -1,6 +1,6 @@
 # FeedSense
 
-**Turn feedback into clear, evidence-backed decisions.** FeedSense analyzes feedback from CSV files and presents sentiment, topics, trends, and searchable user comments in one dashboard. Ask questions about the uploaded dataset with the Gemini-powered Feedback Copilot.
+**Built during the Datathon hackathon**, FeedSense is an AI-powered feedback intelligence platform that transforms raw feedback into clear, evidence-backed decisions. It combines sentiment analysis, topic discovery, and LangGraph-driven decision workflows in an interactive dashboard, with Gemini-powered answers grounded in the analyzed dataset.
 
 ## Features
 
