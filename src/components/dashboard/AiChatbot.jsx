@@ -99,9 +99,8 @@ export default function AiChatbot({
     {
       id: "initial-1",
       sender: "ai",
-      text: `Hello! I am your **FeedSense AI Copilot** powered by Google Gemini.\n\nI have indexed all **${records.length.toLocaleString()} feedback records** in "${datasetName}".\n\nAsk me anything about user sentiment, recurring complaints, departmental performance, or prompt me for an action plan!`,
+      text: `Hello! I am your **FeedSense AI Copilot**.\n\nI have indexed all **${records.length.toLocaleString()} feedback records** in "${datasetName}". Ask me about user sentiment, recurring complaints, or action plans.`,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      model: "Gemini Copilot",
     },
   ]);
   const [input, setInput] = useState("");
@@ -186,40 +185,6 @@ export default function AiChatbot({
     ];
   }, [analysisStats]);
 
-  // Client-side fallback generator in case backend is unreachable
-  const generateClientFallback = (query) => {
-    const q = query.toLowerCase();
-    const { total, pos, neg, posRate, negRate, topNegativeTopics, topPositiveTopics, dominantEmotion, quotes } = analysisStats;
-
-    if (q.includes("pain point") || q.includes("complaint") || q.includes("unhappy") || q.includes("frustrated") || q.includes("negative")) {
-      const topIssues = topNegativeTopics.map(([t, count]) => `• **${t}**: ${count} complaints logged`).join("\n");
-      const quoteExample = quotes.negative[0] ? `\n\n> *“${quotes.negative[0].text}”*` : "";
-      return `Based on **${neg} negative feedback items (${negRate}% of total responses)**, here are the primary pain points:\n\n${topIssues}\n\nThe dominant negative emotion detected is **${dominantEmotion}**. A representative quote from users:${quoteExample}\n\n**Recommendation:** Prioritize the highest-frequency cluster immediately to stem further negative sentiment drift.`;
-    }
-
-    if (q.includes("love") || q.includes("positive") || q.includes("praise") || q.includes("best") || q.includes("working")) {
-      const topWins = topPositiveTopics.map(([t, count]) => `• **${t}**: ${count} positive endorsements`).join("\n");
-      const quoteExample = quotes.positive[0] ? `\n\n> *“${quotes.positive[0].text}”*` : "";
-      return `Users are most satisfied with these high-performing areas (**${pos} positive responses, ${posRate}%**):\n\n${topWins}\n\nRepresentative praise from users:${quoteExample}\n\n**Takeaway:** Protect and celebrate these strengths; consider featuring them in marketing or internal best-practice workshops.`;
-    }
-
-    if (q.includes("action plan") || q.includes("recommend") || q.includes("steps") || q.includes("fix") || q.includes("executive")) {
-      const top1 = topNegativeTopics[0]?.[0] || "Facilities";
-      const top2 = topNegativeTopics[1]?.[0] || "Support";
-      return `### 3-Step High-Conviction Action Plan\n\n1. **Immediate Intervention on ${top1} (P0 Priority):**\n   - Conduct a 48-hour operational audit.\n   - Establish direct communication with impacted cohorts to communicate resolution timelines.\n\n2. **Process Re-engineering for ${top2} (P1 Priority):**\n   - Implement automated alerts and queue management to eliminate friction.\n\n3. **Continuous Sentiment Monitoring:**\n   - Track Net Sentiment Score (currently **${posRate - negRate}**) weekly to verify that corrective measures reflect in new feedback.`;
-    }
-
-    if (q.includes("department") || q.includes("immediate") || q.includes("intervention") || q.includes("worst")) {
-      const worst = topNegativeTopics[0];
-      if (worst) {
-        return `The area requiring **most urgent intervention** is **${worst[0]}** with **${worst[1]} complaints**.\n\nThis represents the largest single source of user dissatisfaction. Addressing this first will yield the highest return on user sentiment.`;
-      }
-      return `Feedback is well-balanced across departments. Keep monitoring incoming streams for anomalies.`;
-    }
-
-    return `Analysis summary for **${total} responses** in this dataset:\n\n• **Positive:** ${pos} (${posRate}%)\n• **Negative:** ${neg} (${negRate}%)\n• **Net Sentiment Score (NSS):** ${posRate - negRate}\n• **Primary Complaint Topic:** ${topNegativeTopics[0]?.[0] || "None"}\n• **Primary Strength:** ${topPositiveTopics[0]?.[0] || "None"}\n\nYou can ask me to drill into any specific topic or generate departmental briefs!`;
-  };
-
   const handleSend = async (textToSend) => {
     const query = (textToSend || input).trim();
     if (!query || isTyping) return;
@@ -236,7 +201,6 @@ export default function AiChatbot({
     setIsTyping(true);
 
     try {
-      // 1. Try Gemini via backend API
       const response = await askAiChatbot({
         message: query,
         history: messages.slice(-6),
@@ -245,40 +209,31 @@ export default function AiChatbot({
         datasetName,
       });
 
-      if (response && response.reply) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `ai-${Date.now()}`,
-            sender: "ai",
-            text: response.reply,
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            model: response.model || (response.status === "gemini" ? "Google Gemini" : "Local Copilot"),
-          },
-        ]);
-        return;
-      }
-    } catch (err) {
-      console.warn("Backend chat failed, falling back to local dataset engine:", err);
-    } finally {
-      setIsTyping(false);
-    }
-
-    // 2. Client-side fallback if backend was unavailable
-    setTimeout(() => {
-      const fallbackText = generateClientFallback(query);
       setMessages((prev) => [
         ...prev,
         {
           id: `ai-${Date.now()}`,
           sender: "ai",
-          text: fallbackText,
+          text: response.reply,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          model: "Local Intelligence",
+          model: response.model || "Google Gemini",
         },
       ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gemini is temporarily unavailable.";
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `ai-error-${Date.now()}`,
+          sender: "ai",
+          text: `**Gemini unavailable.** ${message}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          model: "Gemini unavailable",
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 400);
+    }
   };
 
   const handleSendRef = useRef(handleSend);
@@ -304,7 +259,6 @@ export default function AiChatbot({
         sender: "ai",
         text: `Conversation reset. What would you like to explore across your **${records.length.toLocaleString()} feedback responses**?`,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        model: "Gemini Copilot",
       },
     ]);
   };
@@ -415,7 +369,7 @@ export default function AiChatbot({
             </div>
             <div className="msg-content-wrapper">
               <div className="msg-bubble typing-bubble">
-                <span className="typing-text">Analyzing dataset with Gemini</span>
+                <span className="typing-text">Waiting for Gemini</span>
                 <span className="dot" />
                 <span className="dot" />
                 <span className="dot" />

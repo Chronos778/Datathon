@@ -5409,3 +5409,14 @@
 .icon-purple {
   color: #8b5cf6;
 }
+
+.msg-model-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 9px;
+}
